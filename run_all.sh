@@ -1,6 +1,4 @@
-#!/usr/bin/env bash
-# Runs the full model x loss x ratio sweep. Adjust the lists below to taste —
-# running everything can take a while depending on your machine.
+
 set -e
 
 cd "$(dirname "$0")"
@@ -21,7 +19,7 @@ for model in "${MODELS[@]}"; do
   done
 done
 
-# SHAP only for the flagship model — it's the slowest step
+
 python src/explain.py --model mlp_attention --loss focal --ratio full
 
-echo "Done. See results/metrics_table.csv for the full comparison table."
+echo " See results/metrics_table.csv for the full comparison table."
