@@ -1,4 +1,3 @@
-
 set -e
 
 cd "$(dirname "$0")"
@@ -20,6 +19,6 @@ for model in "${MODELS[@]}"; do
 done
 
 
-python src/explain.py --model mlp_attention --loss focal --ratio full
+python src/explain.py --model mlp_attention --loss bce --ratio full
 
 echo " See results/metrics_table.csv for the full comparison table."
