@@ -1,0 +1,17 @@
+# Data
+data/*.csv
+data/processed/
+
+# Python
+venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Results (keep folder, ignore heavy artifacts if you want — comment out if you DO want to commit results)
+# results/figures/*.png
+
+# OS / editor
+.DS_Store
+.vscode/
+*.egg-info/
