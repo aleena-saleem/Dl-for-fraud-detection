@@ -1,13 +1,12 @@
 # Deep Learning for Extreme Class-Imbalanced Credit Card Fraud Detection
 
 Studies how deep learning models behave under extreme class imbalance (~0.17% positive
-rate), using the ULB Credit Card Fraud dataset as a testbed. Built as prep material for
-a Mitacs application (Project 53935 — "Deep Learning for Imbalanced Data", Dr. Paula
-Branco, University of Ottawa).
+rate), using the ULB Credit Card Fraud dataset.
 
-## Central question
+## Question
 How can a deep learning model detect extremely rare fraudulent transactions without
-collapsing to "always predict legitimate"? And how does that answer change as the
+collapsing to "always predict legitimate"?
+And how does that answer change as the
 imbalance ratio and model complexity change?
 
 ## Approach
@@ -20,42 +19,27 @@ imbalance ratio and model complexity change?
 - **Metrics:** PR-AUC, F1, F2, recall @ fixed precision, MCC — **not** plain accuracy
   or ROC-AUC, both of which are misleading at this imbalance level
 - **Interpretability:** SHAP on true positives, false positives, and false negatives
-  from the test set, to characterize *where* the model still fails
+  from the test set, to characterize where the model still fails
 
 ## Setup
 
 ```bash
 python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
+source venv/bin/activate        
 pip install -r requirements.txt
 ```
 
-## Data
+## Dataset
 
-1. Download `creditcard.csv` from the ULB Credit Card Fraud dataset on Kaggle:
-   https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud
-2. Place it at `data/creditcard.csv` (this folder is gitignored — do not commit the raw
-   data file, it's ~150MB and not yours to redistribute).
-
-## Pipeline
-
-```bash
-python src/data_prep.py          # split + scale, writes processed splits to data/
-python src/train.py --model mlp_attention --loss focal --ratio full
-python src/evaluate.py --model mlp_attention --loss focal --ratio full
-python src/explain.py --model mlp_attention --loss focal --ratio full
-```
-
-Run `python src/train.py --help` for all model/loss/ratio combinations. Results
-(metrics table, plots, SHAP figures) are written to `results/`.
-
+1. `creditcard.csv` from the ULB Credit Card Fraud dataset on Kaggle.
+   
 ## Repo structure
 
 ```
 fraud-detection-imbalance/
-├── data/                  # gitignored — put creditcard.csv here
+├── data/                  
 ├── notebooks/
-│   └── 01_eda.ipynb       # exploratory data analysis
+│   └── 01_eda.ipynb      
 ├── src/
 │   ├── data_prep.py       # load, scale, split, build imbalance-ratio subsets
 │   ├── models.py          # MLP, MLP+Attention architectures
@@ -124,7 +108,8 @@ including all focal-loss variants.
 See `results/metrics_table.csv` for the full 24-row table and `results/figures/grids/`
 for the corresponding confusion-matrix and SHAP visualizations.
 
-### SHAP failure analysis (best model: `mlp_attention_bce_full`)
+### SHAP failure analysis 
+(best model: `mlp_attention_bce_full`)
 
 `V14`, `V10`, `V12`, `V4`, and `V17` are consistently the most influential features
 across true positives, false positives, and false negatives — consistent with prior
@@ -134,12 +119,4 @@ values for true positives reach as high as ±0.6, while false negatives rarely e
 wrong — they sit closer to the legitimate-transaction distribution on the features that
 matter most, i.e., genuine class overlap that loss reweighting alone cannot resolve.
 
-## Why this design
-
-Accuracy on a dataset that's 99.83% legitimate is meaningless — a model that predicts
-"legitimate" for everything scores 99.83% accuracy and catches zero fraud. This project
-treats that as the starting failure mode to demonstrate, then investigates which
-combination of loss function, architecture, and resampling actually helps recall on the
-minority class without destroying precision, and how that answer shifts as the
-imbalance ratio itself changes.
 
