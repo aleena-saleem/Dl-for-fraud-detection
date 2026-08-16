@@ -36,8 +36,7 @@ pip install -r requirements.txt
 ## Repo structure
 
 ```
-fraud-detection-imbalance/
-├── data/                  
+fraud-detection-imbalance/                
 ├── notebooks/
 │   └── 01_eda.ipynb      
 ├── src/
