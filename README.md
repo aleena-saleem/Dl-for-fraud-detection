@@ -3,24 +3,15 @@
 Studies how deep learning models behave under extreme class imbalance (~0.17% positive
 rate), using the ULB Credit Card Fraud dataset.
 
-## Question
-How can a deep learning model detect extremely rare fraudulent transactions without
-collapsing to "always predict legitimate"?
-And how does that answer change as the
-imbalance ratio and model complexity change?
 
 ## Approach
-- **Model:** Dense layers → self-attention block → Focal Loss → fraud probability
-- **Baselines:** Logistic Regression, plain MLP + BCE, MLP + class-weighted BCE,
-  XGBoost with `scale_pos_weight`
-- **Experiment axis:** train each model at several imbalance ratios (1:1, 1:10, 1:100,
-  full ~1:577) via controlled undersampling, to isolate the effect of imbalance ratio
-  from the effect of the loss/architecture choice
-- **Metrics:** PR-AUC, F1, F2, recall @ fixed precision, MCC — **not** plain accuracy
-  or ROC-AUC, both of which are misleading at this imbalance level
-- **Interpretability:** SHAP on true positives, false positives, and false negatives
-  from the test set, to characterize where the model still fails
 
+- **Model:** Dense layers → self-attention block → fraud probability; trained using **BCE, class-weighted BCE, and Focal Loss** variants
+- **Baselines:** Plain MLP + BCE and MLP + class-weighted BCE
+- **Experiment axis:** Train each architecture/loss combination at several imbalance ratios (**1:1, 1:10, 1:100, full ~1:577**) via controlled undersampling, to isolate the effects of imbalance ratio, loss function, and architecture
+- **Metrics:** PR-AUC, F1, F2, recall @ fixed precision, and MCC — **not plain accuracy** as the primary metric, given the extreme class imbalance
+- **Interpretability:** SHAP analysis on **true positives, false positives, and false negatives** from the test set to characterize where the model succeeds and fails
+- 
 ## Setup
 
 ```bash
