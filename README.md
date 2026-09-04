@@ -22,6 +22,13 @@ affect fraud detection performance, and where each one breaks down.
 - **Interpretability:** SHAP analysis on true positives, false positives, and false
   negatives to characterize *where* the model succeeds and fails, not just how often
 
+## Setup
+
+```bash
+python -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
 
 ## Dataset
 
@@ -58,64 +65,58 @@ configurations**, each evaluated with 7-fold CV and a fixed held-out test set (7
 
 ### Best-performing configuration
 
-By PR-AUC — the primary metric here — the top result is the **plain MLP trained with
-BCE at the full, natural imbalance ratio**: PR-AUC 0.837 ± 0.041 (CV mean ± std), F1
-0.823 ± 0.034, MCC 0.825 ± 0.033. The attention variant with the same loss and ratio is
-a close second (PR-AUC 0.832 ± 0.042, F1 0.819 ± 0.041, MCC 0.819 ± 0.041), and edges
-ahead on the single held-out test split for F1, MCC, and recall (0.837 / 0.838 / 0.797
-vs. 0.835 / 0.836 / 0.784 for the plain MLP). No configuration dominates on every
-metric — the two top configs trade a small amount of precision for recall depending on
-which one you pick.
+**Plain MLP + BCE, full imbalance ratio** — PR-AUC 0.837 ± 0.041 (CV mean ± std), F1
+0.823 ± 0.034, MCC 0.825 ± 0.033. `mlp_attention_bce_full` is a close second (PR-AUC
+0.832, F1 0.819, MCC 0.819) and edges ahead on the single held-out test split for F1,
+MCC, and recall. No config wins on every metric.
 
 ### Key findings
 
-1. **ROC-AUC is not a useful metric at this imbalance level; PR-AUC is.** Across all 24
-   configurations, CV-mean PR-AUC ranges from **0.558** (`mlp_focal_1to1`) to **0.837**
-   (`mlp_bce_full`) — a genuine ~28-point spread that separates strong configurations
-   from weak ones. Reporting accuracy or ROC-AUC alone on a dataset this skewed hides
-   almost all of that signal.
+1. **PR-AUC over ROC-AUC.** CV-mean PR-AUC ranges from **0.558** (`mlp_focal_1to1`) to
+   **0.837** (`mlp_bce_full`) — a real 28-point spread. Accuracy/ROC-AUC would hide
+   almost all of it.
 
-2. **Self-attention's effect on PR-AUC is inconsistent, not a uniform lift.** At the
-   full ratio with BCE, the plain MLP actually edges out the attention variant on
-   PR-AUC (0.837 vs. 0.832, CV mean) — the opposite of a straightforward "attention
-   helps" story. Elsewhere it does help: at BCE + 1:100, the attention model reaches
-   0.826 PR-AUC on the held-out test set vs. 0.761 for the plain MLP. The honest
-   summary is that attention shifts the precision/recall balance and helps in some
-   loss/ratio combinations, but it is not a free, consistent win.
+2. **Attention's lift is inconsistent.** At BCE + full ratio, plain MLP actually beats
+   attention (0.837 vs. 0.832 PR-AUC). At BCE + 1:100, attention wins clearly (0.826 vs.
+   0.761, test set). It shifts the precision/recall balance, not a guaranteed +PR-AUC.
 
-3. **Focal loss underperforms both BCE and weighted BCE here, and by a wide margin at
-   the full ratio.** `mlp_focal_full` reaches F1 of only **0.096** (CV mean; 0.126 on
-   the single test run) — dramatically below `mlp_bce_full`'s 0.823 CV-mean F1. Adding
-   attention doesn't rescue it: `mlp_attention_focal_full` scores a similarly low
-   **0.104** CV-mean F1. Focal loss's down-weighting of "easy" negatives appears to
-   backfire when the training set already reflects the natural, extreme skew — it ends
-   up under-flagging fraud rather than focusing on it.
+3. **Focal loss underperforms, badly, at the full ratio.** `mlp_focal_full`: F1 0.096
+   (CV mean). `mlp_attention_focal_full`: F1 0.104. Both far below BCE's 0.823. Focal's
+   easy-example down-weighting backfires when training data already reflects the real
+   skew.
 
-4. **Naive class-weighting (weighted BCE) trades precision for recall aggressively, and
-   not always in a useful direction.** Using `pos_weight = n_negative / n_positive`
-   pushes precision down to **0.068** at the 1:10 ratio (recall 0.865) for the plain
-   MLP — the model floods borderline transactions with fraud flags. At the full ratio
-   precision recovers to 0.432 (recall 0.865), which is still far below what BCE
-   achieves (0.892 precision at the same recall level). Naive cost-sensitive weighting
-   needs threshold calibration to be usable in practice; raising recall via loss
-   weighting alone comes at a real precision cost.
+4. **Weighted BCE overcorrects.** Precision drops to **0.068** at 1:10 (recall 0.865);
+   recovers only to 0.432 at the full ratio — still well below BCE's 0.892 at similar
+   recall. Needs threshold calibration to be usable.
 
-5. **Undersampling trades recall for precision predictably.** For plain MLP + BCE,
-   moving from a 1:1 to the natural ~1:577 ratio raises precision from **0.082 to
-   0.892** while recall falls from **0.878 to 0.784** on the held-out test set — the
-   classic imbalance-ratio trade-off, cleanly isolated here because the test set never
-   changes across ratios.
+5. **Undersampling trades recall for precision.** MLP + BCE, 1:1 → full: precision
+   **0.082 → 0.892**, recall **0.878 → 0.784**. Test set held fixed throughout.
+
+See [`results/cv_results.csv`](results/cv_results.csv) for the full 24-row
+cross-validated table, [`results/metrics_table.csv`](results/metrics_table.csv) for
+per-run test-set metrics alongside the same CV aggregates, and
+`results/figures/grids/` for the corresponding confusion-matrix and SHAP
+visualizations.
 
 ### Figures
 
 ![PR-AUC across imbalance ratio, by loss and architecture](results/figures/pr_auc_by_ratio.png)
 
+*CV-mean PR-AUC (± std) as training imbalance ratio moves from 1:1 to the natural
+~1:577, split by loss function and architecture. BCE is the only loss that keeps
+improving toward the full ratio; focal loss and weighted BCE plateau or decline.*
 
 ![Precision/recall tradeoff for undersampling](results/figures/precision_recall_tradeoff_mlp_bce.png)
 
+*MLP + BCE: precision climbs from 0.08 to 0.89 as the ratio moves toward the natural
+imbalance, while recall drifts down from 0.88 to 0.78 — the tradeoff described in
+finding 5.*
 
 ![Weighted BCE overcorrection](results/figures/weighted_bce_overcorrection.png)
 
+*MLP + weighted BCE: recall stays roughly flat (~0.85–0.87) across every ratio, but
+precision swings wildly — the class-weighting term dominates the loss regardless of
+how much real imbalance the model sees during training.*
 
 ### SHAP failure analysis (best model: `mlp_bce_full`)
 
@@ -142,4 +143,7 @@ that loss reweighting alone cannot resolve.
   (particularly the weighted-BCE precision collapse) would likely look different under
   a calibrated decision threshold — that comparison is left for future work.
 
+## Acknowledgments
 
+Dataset: Machine Learning Group, Université Libre de Bruxelles (ULB) — *Credit Card
+Fraud Detection*, available on Kaggle.
